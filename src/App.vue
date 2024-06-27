@@ -1,106 +1,103 @@
 <script>
-import axios from "axios";
+import Input from "./components/Input.vue";
+import Selector from "./components/Selector.vue";
+import Favourite from "./components/Favourite.vue";
+
+import CryptoConvert from "crypto-convert";
+
+const convert = new CryptoConvert();
 
 export default {
+  components: {
+    Input,
+    Selector,
+    Favourite
+  },
   data() {
     return {
-      city: "",
+      amount: 0,
+      cryptoFirst: "",
+      cryptoSecond: "",
       error: "",
-      info: null,
+      result: 0,
+      favs: []
     };
   },
-  computed: {
-    cityName() {
-      return "'" + this.city + "'";
-    },
-
-    showTemp() {
-      return "Temperature: " + this.info.main.temp;
-    },
-    showFeelsLike() {
-      return "Feels like: " + this.info.main.feels_like;
-    },
-    showMinTemp() {
-      return "Min temperature: " + this.info.main.temp_min;
-    },
-    showMaxTemp() {
-      return "Max temperature: " + this.info.main.temp_max;
-    },
-  },
   methods: {
-    getWeather() {
-      if (this.city.trim().length < 2) {
-        this.error = "Need more than 1 symbol";
-        return false;
-      }
+    favourite(){
+      this.favs.push({
+        from: this.cryptoFirst,
+        to: this.cryptoSecond
 
+      })
+    },
+    changeAmount(val) {
+      this.amount = val;
+    },
+
+    setCryptoFirst(val) {
+      this.cryptoFirst = val;
+    },
+
+    setCryptoSecond(val) {
+      this.cryptoSecond = val;
+    },
+    async convert() {
+      if (this.amount <= 0) {
+        this.error = "Enter number more than 0";
+        return;
+      } else if (this.cryptoFirst == "" || this.cryptoSecond == "") {
+        this.error = "Choose currency";
+        return;
+      } else if (this.cryptoFirst == this.cryptoSecond) {
+        this.error = "Choose two different currency";
+        return;
+      }
       this.error = "";
-      axios
-        .get(
-          `https://api.openweathermap.org/data/2.5/weather?q=${this.city}&units=metric&appid=37d19ff7448566a5350530a52c605d6c`
-        )
-        .then((res) => (this.info = res.data));
+
+      await convert.ready();
+
+      if (this.cryptoFirst === "BTC" && this.cryptoSecond === "ETH") {
+        this.result = convert.BTC.ETH(this.amount);
+      } else if (this.cryptoFirst === "BTC" && this.cryptoSecond === "USDT") {
+        this.result = convert.BTC.USDT(this.amount);
+      } else if (this.cryptoFirst === "ETH" && this.cryptoSecond === "BTC") {
+        this.result = convert.ETH.BTC(this.amount);
+      } else if (this.cryptoFirst === "ETH" && this.cryptoSecond === "USDT") {
+        this.result = convert.ETH.USDT(this.amount);
+      } else if (this.cryptoFirst === "USDT" && this.cryptoSecond === "BTC") {
+        this.result = convert.USDT.BTC(this.amount);
+      } else if (this.cryptoFirst === "USDT" && this.cryptoSecond === "ETH") {
+        this.result = convert.USDT.ETH(this.amount);
+      }
     },
   },
 };
 </script>
 
 <template>
-  <div className="wrapper">
-    <h1>Forecast weather</h1>
-    <p>Forecast for {{ city == "" ? "your city" : cityName }}</p>
-    <input v-model="city" type="text" placeholder="City" />
-    <button v-if="city != ''" @click="getWeather()">Search</button>
-    <p className="error">{{ error }}</p>
-    <div v-if="info != null">
-     <p>{{ showTemp }}</p>
-        <p>{{ showFeelsLike }}</p>
-        <p>{{ showMinTemp }}</p>
-        <p>{{ showMaxTemp }}</p>
-    </div> 
+  <h1>CRYPTO</h1>
+  <Input :changeAmount="changeAmount" :convert="convert" :favourite="favourite" />
+  <p v-if="error != ''" class="error">{{ error }}</p>
+  <p v-if="result != 0 && error == ''" class="result">{{ result }}</p>
+  <Favourite :favs="favs" v-if="favs.length > 0"/>
+  <div class="selectors">
+    <Selector :setCrypto="setCryptoFirst" />
+    <Selector :setCrypto="setCryptoSecond" />
   </div>
 </template>
 
 <style scoped>
-.wrapper {
-  width: 900px;
-  height: 500px;
-  border-radius: 20px;
-  background: pink;
-  padding: 20px;
-  color: #d45c5c;
-  text-align: center;
+.selectors {
+  display: flex;
+  justify-content: space-around;
+  width: 700px;
+  margin: 0 auto;
 }
-.wrapper h1 {
-  margin-top: 50px;
-}
-.wrapper p {
+.result, .error{
   margin-top: 20px;
-}
-.wrapper input {
-  margin-top: 30px;
-  background: transparent;
-  border: 0;
-  border-bottom: 2px solid #fff;
-  color: #612121;
-  font-size: 14px;
-  padding: 5px 8px;
-  outline: none;
-}
-.wrapper input:focus {
-  border-bottom-color: #d45c5c;
-}
-.wrapper button {
-  background: #fff;
-  color: black;
-  border-radius: 10px;
-  border: 2px solid #fff;
-  padding: 10px 15px;
-  margin-left: 20px;
-  cursor: pointer;
-  transition: transform 500ms ease;
-}
-.wrapper button:hover {
-  transform: scale(1.1) translateY(-5px);
+  font-size: 25px;
+  font-weight: bold;
+  color: blue;
 }
 </style>
